@@ -1,71 +1,52 @@
 package com.sarriaroman.PhotoViewer;
 
-import android.Manifest;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Build;
 
 import org.apache.cordova.CallbackContext;
 import org.apache.cordova.CordovaPlugin;
-import org.apache.cordova.PluginResult;
 import org.json.JSONArray;
 import org.json.JSONException;
 
 /**
  * Class to Open PhotoViewer with the Required Parameters from Cordova
- * <p>
  * - URL
  * - Title
  */
 public class PhotoViewer extends CordovaPlugin {
 
+    // we keep these just in case you later want to re-enable the old behaviour,
+    // but we DON'T use them now.
+    // public static final String WRITE = Manifest.permission.WRITE_EXTERNAL_STORAGE;
+    // public static final String READ = Manifest.permission.READ_EXTERNAL_STORAGE;
+    // public static final String READ_IMAGES = Manifest.permission.READ_MEDIA_IMAGES;
+    // public static final int REQ_CODE = 0;
     public static final int PERMISSION_DENIED_ERROR = 20;
-
-    public static final String WRITE = Manifest.permission.WRITE_EXTERNAL_STORAGE;
-    public static final String READ = Manifest.permission.READ_EXTERNAL_STORAGE;
-    public static final String READ_IMAGES = Manifest.permission.READ_MEDIA_IMAGES;
-
-    public static final int REQ_CODE = 0;
 
     protected JSONArray args;
     protected CallbackContext callbackContext;
 
     @Override
     public boolean execute(String action, JSONArray args, CallbackContext callbackContext) throws JSONException {
-        if (action.equals("show")) {
+        if ("show".equals(action)) {
             this.args = args;
             this.callbackContext = callbackContext;
-            if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (cordova.hasPermission(READ_IMAGES)) {
-                    this.launchActivity();
-                } else {
-                    this.getPermission();
-                }
-            } else {
-                if (cordova.hasPermission(READ) && cordova.hasPermission(WRITE)) {
-                    this.launchActivity();
-                } else {
-                    this.getPermission();
-                }
-            }
+
+            // ✅ NEW: we just launch, no permission checks
+            this.launchActivity();
             return true;
         }
         return false;
     }
 
+    // no-op now; kept for compatibility
     protected void getPermission() {
-        if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            cordova.requestPermissions(this, REQ_CODE, new String[]{READ_IMAGES});
-        } else {
-            cordova.requestPermissions(this, REQ_CODE, new String[]{WRITE, READ});
-        }
+        // intentionally empty: we don't need runtime permissions
     }
 
-    //
     protected void launchActivity() throws JSONException {
         Intent i = new Intent(this.cordova.getActivity(), com.sarriaroman.PhotoViewer.PhotoActivity.class);
-		i.putExtra("ARGS", this.args.toString());
-
+        i.putExtra("ARGS", this.args.toString());
         this.cordova.getActivity().startActivity(i);
         this.callbackContext.success("");
     }
@@ -73,20 +54,8 @@ public class PhotoViewer extends CordovaPlugin {
     @Override
     public void onRequestPermissionResult(int requestCode, String[] permissions,
                                           int[] grantResults) throws JSONException {
-        for (int r : grantResults) {
-            if (r == PackageManager.PERMISSION_DENIED) {
-                this.callbackContext.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, PERMISSION_DENIED_ERROR));
-                return;
-            }
-        }
-
-        switch (requestCode) {
-            case REQ_CODE:
-                launchActivity();
-                break;
-        }
-
+        // since we don't request permissions anymore, we can leave this empty
+        // or just always succeed
+        this.launchActivity();
     }
-
-
 }
